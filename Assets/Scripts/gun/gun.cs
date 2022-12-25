@@ -10,7 +10,7 @@ public class gun : MonoBehaviour
     [SerializeField] Material blue;
     [SerializeField] Transform gunTip;
     [SerializeField] Transform gunTip_2;
-    List<ColouredObject> objects = new List<ColouredObject>();
+    List<GameObject> objects = new List<GameObject>();
     [SerializeField] LineRenderer lr;
     
     [SerializeField] float extraShootingForce;
@@ -80,6 +80,9 @@ public class gun : MonoBehaviour
         if (!l && !r)
         {
             lr.enabled = false;
+            // If the gun is not being held in any of the hands there is no point in continuing to raycast.
+            // This'll save some resources (I hope)
+            return; 
         }
         else
         {
@@ -97,13 +100,13 @@ public class gun : MonoBehaviour
             {
                 if (hit.collider.gameObject.GetComponent<Renderer>() != null)
                 {
-                    if (hit.collider.gameObject != this.gameObject)
+                    
+                    // Changes the material when highlighted
+                    if (hit.collider.gameObject != this.gameObject && hit.collider.gameObject.GetComponent<Materialhandler>() != null)
                     {
-                        objects.Add(new ColouredObject(hit.transform.gameObject, blue));
-                        hit.collider.gameObject.GetComponent<Renderer>().material = red;
+                        hit.collider.gameObject.GetComponent<Materialhandler>().setHighlightedMaterial();
+                        objects.Add(hit.transform.gameObject);            
                     }
-
-
 
                     // Pressing the shoot button
                     bool value;
@@ -120,7 +123,7 @@ public class gun : MonoBehaviour
                             // We add a force on the object if we press the fire button
                             // Also we make sure that we don't keep shooting on the object of interest
                             Vector3 forceDirection = hit.point - gunTip.position;
-                            hit.rigidbody.AddForce(forceDirection * extraShootingForce);
+                            hit.rigidbody.AddForce(forceDirection.normalized * extraShootingForce);
                             stopShooting = true;
                             
                         }
@@ -140,20 +143,20 @@ public class gun : MonoBehaviour
         }
 
 
-        List<ColouredObject> toRemove = new List<ColouredObject>();
-        foreach (ColouredObject i in objects)
+        List<GameObject> toRemove = new List<GameObject>();
+        foreach (GameObject i in objects)
         {
             if (i != null && hit.collider != null)
             {
-                if (i.target.name != hit.collider.name || hitSomething == false)
+                if (i.name != hit.collider.name || hitSomething == false)
                 {
-                    i.target.GetComponent<Renderer>().material = i.material;
+                    i.GetComponent<Materialhandler>().setOriginalMaterial();
                     toRemove.Add(i);
                 }
             }
 
         }
-        foreach (ColouredObject i in toRemove)
+        foreach (GameObject i in toRemove)
         {
             objects.Remove(i);
         }
@@ -164,11 +167,9 @@ public class gun : MonoBehaviour
 class ColouredObject
 {
     public GameObject target;
-    public Material material;
 
-    public ColouredObject(GameObject target, Material material)
+    public ColouredObject(GameObject target)
     {
         this.target = target;
-        this.material = material;
     }
 }
